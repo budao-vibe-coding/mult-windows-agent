@@ -1,0 +1,67 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+            python-arch: x64
+          # 构建 ARM64 版本（需要运行在 Windows ARM64 机器上）
+          # 注意：若您的 GitHub 账户没有 ARM64 托管运行器额度，该 Job 可能会处于 Pending 或报错
+          # 在这种情况下，建议使用自托管 (self-hosted) ARM64 Windows 运行器
+          - arch: arm64
+            runner: windows-latest-arm64
+            python-arch: arm64
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11' # Windows ARM64 官方从 3.11 开始提供稳定包支持
+        architecture: ${{ matrix.python-arch }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build Executable with PyInstaller
+      run: |
+        # 打包应用为文件夹模式 (--onedir) 且隐藏控制台窗口 (--windowed)
+        pyinstaller --noconfirm --onedir --windowed --add-data "app/ui;app/ui" --name "WindowsAuto" app/gui.py
+      shell: pwsh
+
+    - name: Copy Configuration File
+      run: |
+        # 复制配置文件模板到打包输出的根目录
+        Copy-Item -Path "config.yaml" -Destination "dist/WindowsAuto/config.yaml"
+      shell: pwsh
+
+    - name: Compile Installer with Inno Setup
+      run: |
+        # 传入命令行宏 /DAppArch 指明打包架构，让 Inno Setup 自动选用对应的策略
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppArch=${{ matrix.arch }} installer.iss
+      shell: pwsh
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Windows-Installer-${{ matrix.arch }}
+        path: Output/*.exe
