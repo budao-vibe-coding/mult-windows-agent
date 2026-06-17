@@ -13,7 +13,6 @@ DefaultGroupName=WindowsAuto
 AllowNoIcons=yes
 OutputDir=Output
 WizardStyle=modern
-Languages=chinesesimplified
 
 #if AppArch == "arm64"
   ; ARM64 专有配置
