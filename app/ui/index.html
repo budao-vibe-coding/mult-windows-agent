@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Multi-Agent 桌面协同系统</title>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0d19;
+            --panel-bg: rgba(18, 22, 41, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary-color: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.3);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --active-glow: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1c1a35 0%, var(--bg-color) 70%);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            user-select: none;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: rgba(10, 12, 22, 0.95);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 8px;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .logo-title {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(to right, #ffffff, #c7d2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .whitelist-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .whitelist-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .whitelist-item span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 160px;
+        }
+
+        .badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-area {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--danger);
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* 主面板 */
+        .main-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            overflow: hidden;
+            gap: 20px;
+        }
+
+        .input-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1;
+        }
+
+        .input-group label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .input-control {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .workspace {
+            display: flex;
+            gap: 20px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* 步骤视图 */
+        .steps-container {
+            width: 38%;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .steps-container h2 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .stepper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 14px;
+            position: relative;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .step-item.active {
+            opacity: 1;
+        }
+
+        .step-item.completed {
+            opacity: 1;
+        }
+
+        .step-node {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 2px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+
+        .step-item.active .step-node {
+            border-color: var(--active-glow);
+            background: #1e3a8a;
+            box-shadow: 0 0 8px var(--active-glow);
+            animation: pulse 1.5s infinite;
+        }
+
+        .step-item.completed .step-node {
+            border-color: var(--success);
+            background: #064e3b;
+            color: #a7f3d0;
+        }
+
+        .step-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .step-agent {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* 终端输出日志 */
+        .terminal-container {
+            flex-grow: 1;
+            background: rgba(5, 7, 15, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .terminal-title {
+            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-muted);
+        }
+
+        .terminal-console {
+            flex-grow: 1;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #d1d5db;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .log-row {
+            word-break: break-all;
+        }
+
+        .log-tag {
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .tag-system { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+        .tag-os_agent { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .tag-gui_agent { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        /* 弹窗拦截层 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: #111424;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            width: 550px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            font-size: 14px;
+            color: #d1d5db;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .param-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .edit-area {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            outline: none;
+            resize: vertical;
+        }
+
+        .remember-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary { background: #1e293b; color: var(--text-main); }
+        .btn-secondary:hover { background: #334155; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <div class="logo-icon"></div>
+            <div class="logo-title">Agent Dispatcher</div>
+        </div>
+        <div class="sidebar-section">
+            <h3>已核准白名单任务</h3>
+            <ul class="whitelist-list" id="whitelistList">
+                <!-- 动态填充 -->
+            </ul>
+        </div>
+        <div class="status-area">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">正在连接服务...</span>
+        </div>
+    </div>
+
+    <!-- 主面板 -->
+    <div class="main-panel">
+        <!-- 指令输入面板 -->
+        <div class="input-panel">
+            <div class="form-row">
+                <div class="input-group" style="flex-grow: 1;">
+                    <label for="taskName">任务名称 (标识白名单)</label>
+                    <input type="text" id="taskName" class="input-control" placeholder="例如: 配置并测试Git">
+                </div>
+                <div class="input-group" style="flex-grow: 3;">
+                    <label for="userCommand">自动化任务描述指令</label>
+                    <input type="text" id="userCommand" class="input-control" placeholder="请输入您的操作指令，例如: 创建sandbox文件夹，在其下建立 python 虚拟环境">
+                </div>
+                <div class="input-group" style="flex-grow: 0; justify-content: flex-end;">
+                    <button class="btn" id="btnSubmit">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.26.41a.5.5 0 0 0 .887-.083l1.88-4.7L15.96 1.686Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/></svg>
+                        调度执行
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 工作区 -->
+        <div class="workspace">
+            <!-- 步骤进度 -->
+            <div class="steps-container">
+                <h2>调度步骤计划</h2>
+                <div class="stepper" id="stepper">
+                    <div style="color: var(--text-muted); font-size: 13px; text-align: center; margin-top: 20px;">暂无计划，请提交任务指令。</div>
+                </div>
+            </div>
+
+            <!-- 控制台日志 -->
+            <div class="terminal-container">
+                <div class="terminal-header">
+                    <div class="terminal-title">实时执行日志终端</div>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="clearLogs()">清除</button>
+                </div>
+                <div class="terminal-console" id="console">
+                    <!-- 动态日志 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 动作拦截审批弹窗 -->
+    <div class="overlay" id="overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-icon">⚠️</div>
+                <div class="modal-title">高风险动作拦截拦截</div>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <span style="font-weight:600; color:var(--warning);" id="interceptAgent">os_agent</span> 
+                    请求在任务 
+                    <span style="font-weight:600; color:var(--active-glow);" id="interceptTask">Task</span> 
+                    中执行动作：
+                </div>
+                <div style="font-size:13px; color:var(--text-muted);" id="interceptDesc">打算执行命令行指令...</div>
+                
+                <label style="font-size:12px; color:var(--text-muted); margin-top:10px;">您可以审阅并在此处直接修改执行参数：</label>
+                <textarea id="editArgs" class="edit-area" rows="4"></textarea>
+
+                <label class="remember-checkbox">
+                    <input type="checkbox" id="chkRemember"> 记住本次审批 (加入动作白名单，下次免确认)
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="decideAction('skip')">跳过该步</button>
+                <button class="btn btn-danger" onclick="decideAction('terminate')">终止任务</button>
+                <button class="btn" onclick="decideAction('approve')">同意执行</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let activeApprovalId = null;
+        let currentActionArgs = null;
+
+        // 连接 WebSocket
+        function connectWS() {
+            ws = new WebSocket("ws://localhost:8000/ws");
+            
+            ws.onopen = () => {
+                document.getElementById("statusDot").className = "status-dot connected";
+                document.getElementById("statusText").innerText = "服务已连接";
+                fetchWhitelist();
+            };
+
+            ws.onclose = () => {
+                document.getElementById("statusDot").className = "status-dot";
+                document.getElementById("statusText").innerText = "已断开连接，正在尝试重连...";
+                setTimeout(connectWS, 2000);
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleWSMessage(message);
+            };
+        }
+
+        // 获取白名单任务
+        function fetchWhitelist() {
+            fetch("http://localhost:8000/api/whitelist")
+                .then(r => r.json())
+                .then(res => {
+                    const listEl = document.getElementById("whitelistList");
+                    listEl.innerHTML = "";
+                    if (res.data.length === 0) {
+                        listEl.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">暂无已调试白名单</div>';
+                        return;
+                    }
+                    res.data.forEach(item => {
+                        const li = document.createElement("li");
+                        li.className = "whitelist-item";
+                        li.innerHTML = `
+                            <span>${item.task_name}</span>
+                            <span class="badge">免确放行</span>
+                        `;
+                        listEl.appendChild(li);
+                    });
+                });
+        }
+
+        // WebSocket 消息分发
+        function handleWSMessage(message) {
+            const type = message.type;
+            const data = message.data;
+
+            if (type === "log") {
+                appendLog(data.agent, data.message);
+            } 
+            else if (type === "plan_initialized") {
+                renderPlan(data.steps);
+                appendLog("System", `任务已初始化，规划拆解为 ${data.steps.length} 个步骤。`);
+            } 
+            else if (type === "step_started") {
+                updateStepStatus(data.step_id, "active");
+            } 
+            else if (type === "step_completed") {
+                updateStepStatus(data.step_id, "completed");
+            } 
+            else if (type === "action_intercepted") {
+                showInterceptModal(data);
+            }
+            else if (type === "task_completed") {
+                appendLog("System", "🎉 任务已成功完成验收！");
+                // 一键将任务设为已调试
+                ws.send(JSON.stringify({
+                    type: "mark_task_debugged",
+                    data: {
+                        task_name: data.task_name,
+                        is_debugged: true
+                    }
+                }));
+            }
+            else if (type === "task_debugged_updated") {
+                fetchWhitelist();
+            }
+        }
+
+        // 渲染步骤
+        function renderPlan(steps) {
+            const stepper = document.getElementById("stepper");
+            stepper.innerHTML = "";
+            steps.forEach(step => {
+                const div = document.createElement("div");
+                div.className = "step-item";
+                div.id = `step-${step.step_id}`;
+                div.innerHTML = `
+                    <div class="step-node">${step.step_id}</div>
+                    <div class="step-content">
+                        <div class="step-title">${step.description}</div>
+                        <div class="step-agent">${step.agent_type}</div>
+                    </div>
+                `;
+                stepper.appendChild(div);
+            });
+        }
+
+        function updateStepStatus(stepId, status) {
+            const stepEl = document.getElementById(`step-${stepId}`);
+            if (stepEl) {
+                stepEl.className = `step-item ${status}`;
+            }
+        }
+
+        // 写入终端日志
+        function appendLog(agent, msg) {
+            const consoleEl = document.getElementById("console");
+            const div = document.createElement("div");
+            div.className = "log-row";
+            div.innerHTML = `
+                <span class="log-tag tag-${agent}">${agent}</span>
+                <span>${msg}</span>
+            `;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById("console").innerHTML = "";
+        }
+
+        // 展示拦截审批弹窗
+        function showInterceptModal(data) {
+            activeApprovalId = data.approval_id;
+            currentActionArgs = data.action_args;
+
+            document.getElementById("interceptAgent").innerText = data.action_type;
+            document.getElementById("interceptTask").innerText = data.task_name;
+            document.getElementById("interceptDesc").innerText = data.description;
+            
+            // 提取关键参数供编辑
+            let editContent = "";
+            if (data.action_args.command) {
+                editContent = data.action_args.command;
+            } else {
+                editContent = JSON.stringify(data.action_args, null, 2);
+            }
+            document.getElementById("editArgs").value = editContent;
+            document.getElementById("chkRemember").checked = false;
+
+            document.getElementById("overlay").className = "overlay active";
+        }
+
+        // 提交审批结果
+        function decideAction(decision) {
+            if (!activeApprovalId) return;
+
+            let response_args = { ...currentActionArgs };
+            const editVal = document.getElementById("editArgs").value.trim();
+
+            if (currentActionArgs.command) {
+                response_args.command = editVal;
+            } else {
+                try {
+                    response_args = JSON.parse(editVal);
+                } catch(e) {
+                    // 如果编辑的不是 JSON，保持原样
+                }
+            }
+
+            const remember = document.getElementById("chkRemember").checked;
+
+            ws.send(JSON.stringify({
+                type: "resolve_approval",
+                data: {
+                    approval_id: activeApprovalId,
+                    decision: decision,
+                    response_args: response_args,
+                    remember: remember
+                }
+            }));
+
+            // 隐藏弹窗
+            document.getElementById("overlay").className = "overlay";
+            activeApprovalId = null;
+        }
+
+        // 提交调度指令
+        document.getElementById("btnSubmit").onclick = () => {
+            const taskName = document.getElementById("taskName").value.trim();
+            const userCommand = document.getElementById("userCommand").value.trim();
+
+            if (!taskName || !userCommand) {
+                alert("请完整填写任务名称与执行指令！");
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: "submit_task",
+                data: {
+                    task_name: taskName,
+                    user_command: userCommand
+                }
+            }));
+        };
+
+        // 启动连接
+        connectWS();
+    </script>
+</body>
+</html>

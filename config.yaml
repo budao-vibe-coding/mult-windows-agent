@@ -1,0 +1,41 @@
+# 多 Agent 自动化系统配置文件
+
+# 1. 桌面端及本地服务配置
+server:
+  host: "127.0.0.1"
+  port: 8000
+  debug: true
+  db_path: "app_data.db"
+  sandbox_dir: "./sandbox"
+
+# 2. 安全与动作拦截配置
+safety:
+  # 拦截高风险动作列表，需人工确认才执行
+  intercept_actions:
+    - "execute_powershell"
+    - "execute_cmd"
+    - "write_file"
+    - "delete_file"
+    - "gui_click"
+    - "gui_type"
+
+# 3. 大模型底座配置 (各 Agent 独立配置)
+# 支持的模型格式参考 LiteLLM，例如: openai/gpt-4o, anthropic/claude-3-5-sonnet, deepseek/deepseek-chat
+models:
+  # 主调度 Agent：负责指令解析、任务分解、结果验证
+  orchestrator:
+    model: "openai/gpt-4o"
+    api_key: "ENV_OPENAI_API_KEY"       # 如果配置为 ENV_xxx，系统会自动读取环境变量中的相应字段
+    api_base: null                      # 自定义中转 API 地址，不需要可设为 null
+
+  # 命令行 OS Agent：负责执行 Shell 命令、系统配置等
+  os_agent:
+    model: "deepseek/deepseek-chat"
+    api_key: "ENV_DEEPSEEK_API_KEY"
+    api_base: "https://api.deepseek.com"
+
+  # 原生 GUI Agent：负责 Windows 桌面程序控制
+  gui_agent:
+    model: "anthropic/claude-3-5-sonnet"
+    api_key: "ENV_ANTHROPIC_API_KEY"
+    api_base: null
