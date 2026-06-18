@@ -19,9 +19,9 @@ jobs:
           # 构建 ARM64 版本（需要运行在 Windows ARM64 机器上）
           # 注意：若您的 GitHub 账户没有 ARM64 托管运行器额度，该 Job 可能会处于 Pending 或报错
           # 在这种情况下，建议使用自托管 (self-hosted) ARM64 Windows 运行器
-          - arch: arm64
-            runner: windows-latest-arm64
-            python-arch: arm64
+          # - arch: arm64
+          #   runner: windows-latest-arm64
+          #   python-arch: arm64
 
     runs-on: ${{ matrix.runner }}
 

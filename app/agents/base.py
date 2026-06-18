@@ -21,9 +21,9 @@ class BaseAgent:
         if not self.agent_cfg:
             raise ValueError(f"No model configuration found for agent '{name}' or fallback 'orchestrator'")
             
-        self.model = self.agent_cfg.model
+        self.model = self.agent_cfg.resolve_model()
         self.api_key = self.agent_cfg.resolve_api_key()
-        self.api_base = self.agent_cfg.api_base
+        self.api_base = self.agent_cfg.resolve_api_base()
         
         # Available tools for this agent
         self.tools: List[Dict[str, Any]] = []

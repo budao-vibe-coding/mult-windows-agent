@@ -2,11 +2,30 @@ import os
 import yaml
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+
+# 自动从项目根目录的 .env 文件中加载环境变量
+load_dotenv()
 
 class ModelConfig(BaseModel):
     model: str
     api_key: Optional[str] = None
     api_base: Optional[str] = None
+
+    def resolve_model(self) -> str:
+        if self.model.startswith("ENV_"):
+            env_var = self.model[4:]
+            val = os.getenv(env_var)
+            if val:
+                return val
+            # 兜底默认模型
+            if "OPENAI" in env_var:
+                return "openai/gpt-4o"
+            elif "RESPONSE" in env_var:
+                return "deepseek/deepseek-chat"
+            elif "ANTHROPIC" in env_var:
+                return "anthropic/claude-3-5-sonnet"
+        return self.model
 
     def resolve_api_key(self) -> Optional[str]:
         if not self.api_key:
@@ -15,6 +34,15 @@ class ModelConfig(BaseModel):
             env_var = self.api_key[4:]
             return os.getenv(env_var)
         return self.api_key
+
+    def resolve_api_base(self) -> Optional[str]:
+        if not self.api_base:
+            return None
+        if self.api_base.startswith("ENV_"):
+            env_var = self.api_base[4:]
+            val = os.getenv(env_var)
+            return val if val else None
+        return self.api_base
 
 class ServerConfig(BaseModel):
     host: str = "127.0.0.1"

@@ -1,7 +1,12 @@
+import sys
 import os
+# 确保项目根目录在 python 搜索路径中，防止 ModuleNotFoundError
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import logging
 import asyncio
+import uuid
 from typing import List, Dict, Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -71,6 +76,10 @@ def startup_event():
     load_config()
     init_db()
     logger.info("Database initialized and config loaded successfully.")
+    
+    # 启动后台定时任务调度器，绑定广播通道
+    from app.core.scheduler import start_scheduler
+    start_scheduler(broadcast_cb=ws_broadcast_handler)
 
 # RESTful 接口
 @app.get("/api/whitelist")
@@ -81,6 +90,101 @@ def get_whitelist():
 def get_system_config():
     config = get_config()
     return {"status": "success", "data": config.dict()}
+
+@app.get("/api/settings")
+def get_settings():
+    settings = {}
+    env_path = ".env"
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    settings[k.strip()] = v.strip()
+    
+    # 填充默认的系统支持密钥键名
+    default_keys = [
+        "OPENAI_API_KEY", "OPENAI_API_BASE", "OPENAI_MODEL",
+        "OPENAI_RESPONSE_API_KEY", "OPENAI_RESPONSE_API_BASE", "OPENAI_RESPONSE_MODEL",
+        "ANTHROPIC_API_KEY", "ANTHROPIC_API_BASE", "ANTHROPIC_MODEL"
+    ]
+    for k in default_keys:
+        if k not in settings:
+            settings[k] = os.getenv(k, "")
+    return {"status": "success", "data": settings}
+
+@app.post("/api/settings")
+def save_settings(settings: dict):
+    env_path = ".env"
+    existing = {}
+    
+    # 读取已有的 .env 变量以便合并
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    existing[k.strip()] = v.strip()
+                    
+    # 合并修改
+    for k, v in settings.items():
+        existing[k.strip()] = v.strip()
+
+    # 写入文件
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write("# 大模型 API 密钥配置 (通过 UI 页面自动生成)\n\n")
+        for k, v in existing.items():
+            f.write(f"{k}={v}\n")
+
+    # 热重载环境变量
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    
+    logger.info("API keys in .env have been updated and reloaded in memory.")
+    return {"status": "success"}
+
+# === 定时任务管理接口 ===
+from app.core.db import save_schedule, get_all_schedules, delete_schedule, get_db_connection
+from app.core.orchestrator import current_run_status
+
+@app.get("/api/schedules")
+def get_schedules():
+    return {"status": "success", "data": get_all_schedules()}
+
+@app.post("/api/schedules")
+def add_schedule(sched: dict):
+    sched_id = sched.get("id") or str(uuid.uuid4())
+    save_schedule(
+        id=sched_id,
+        task_name=sched.get("task_name"),
+        user_command=sched.get("user_command"),
+        schedule_type=sched.get("schedule_type"),
+        schedule_value=sched.get("schedule_value"),
+        status=sched.get("status", "active")
+    )
+    return {"status": "success", "id": sched_id}
+
+@app.delete("/api/schedules/{sched_id}")
+def remove_schedule(sched_id: str):
+    delete_schedule(sched_id)
+    return {"status": "success"}
+
+@app.post("/api/schedules/{sched_id}/toggle")
+def toggle_schedule(sched_id: str, body: dict):
+    status = body.get("status", "active")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE scheduled_tasks SET status = ? WHERE id = ?", (status, sched_id))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
+@app.get("/api/schedules/running")
+def get_running_status():
+    """实时拉取主调度器当前的执行详情、当前操作的 Agent 及最近执行日志"""
+    return {"status": "success", "data": current_run_status}
 
 # 主 WebSocket 管道
 @app.websocket("/ws")
@@ -117,11 +221,16 @@ async def websocket_endpoint(websocket: WebSocket):
             elif msg_type == "mark_task_debugged":
                 task_name = msg_data.get("task_name")
                 is_debugged = msg_data.get("is_debugged", True)
-                register_task(task_name, is_debugged=is_debugged)
+                user_command = msg_data.get("user_command", "")
+                register_task(task_name, is_debugged=is_debugged, user_command=user_command)
                 # 广播状态变更
                 await manager.broadcast({
                     "type": "task_debugged_updated",
-                    "data": {"task_name": task_name, "is_debugged": is_debugged}
+                    "data": {
+                        "task_name": task_name,
+                        "is_debugged": is_debugged,
+                        "user_command": user_command
+                    }
                 })
                 
     except WebSocketDisconnect:

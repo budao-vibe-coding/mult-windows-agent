@@ -513,6 +513,16 @@
                 <!-- 动态填充 -->
             </ul>
         </div>
+        <div class="sidebar-section" style="flex-grow:0; margin-bottom:16px; display:flex; flex-direction:column; gap:8px;">
+            <button class="btn btn-secondary" style="width:100%; justify-content:flex-start;" onclick="toggleSettingsModal(true)">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right:8px;"><path d="M9.405 1.02c0-.662-.538-1.2-1.2-1.2h-.41c-.662 0-1.2.538-1.2 1.2v.06a1.993 1.993 0 0 1-1.398 1.884l-.168.056c-.68.228-1.428-.027-1.847-.61l-.036-.048c-.394-.527-1.135-.644-1.666-.26a1.2 1.2 0 0 0-.256.256c-.384.53-.267 1.272.26 1.666l.048.036c.583.42.838 1.168.61 1.848l-.056.167a1.993 1.993 0 0 1-1.884 1.398h-.06c-.662 0-1.2.538-1.2 1.2v.41c0 .662.538 1.2 1.2 1.2h.06c.68 0 1.332.42 1.558 1.066l.056.168c.228.68-.027 1.428-.61 1.847l-.048.036c-.527.394-.644 1.135-.26 1.666.126.172.284.33.456.456.53.384 1.272.267 1.666-.26l.036-.048c.42-.583 1.168-.838 1.848-.61l.167.056a1.993 1.993 0 0 1 1.398 1.884v.06c0 .662.538 1.2 1.2 1.2h.41c.662 0 1.2-.538 1.2-1.2v-.06a1.993 1.993 0 0 1 1.398-1.884l.168-.056c.68-.228 1.428.027 1.847.61l.036.048c.394.527 1.135.644 1.666.26.172-.126.33-.284.456-.456.384-.53.267-1.272-.26-1.666l-.048-.036c-.583-.42-.838-1.168-.61-1.848l.056-.167a1.993 1.993 0 0 1 1.884-1.398h.06c.662 0 1.2-.538 1.2-1.2v-.41c0-.662-.538-1.2-1.2-1.2h-.06a1.993 1.993 0 0 1-1.884-1.398l-.056-.167c-.228-.68.027-1.428.61-1.847l.048-.036c.527-.394.644-1.135.26-1.666a1.2 1.2 0 0 0-.256-.256c-.53-.384-1.272-.267-1.666.26l-.036.048c-.42.583-1.168.838-1.848.61l-.167-.056A1.993 1.993 0 0 1 9.405 1.02zm-1.405 10c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/></svg>
+                配置系统密钥
+            </button>
+            <button class="btn btn-secondary" style="width:100%; justify-content:flex-start;" onclick="toggleSchedulesModal(true)">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right:8px;"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>
+                定时任务管理
+            </button>
+        </div>
         <div class="status-area">
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">正在连接服务...</span>
@@ -595,10 +605,155 @@
         </div>
     </div>
 
+    <!-- 系统设置弹窗 -->
+    <div class="overlay" id="settingsOverlay">
+        <div class="modal" style="width: 500px;">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(79, 70, 229, 0.15); color: var(--primary-color);">⚙️</div>
+                <div class="modal-title">系统密钥配置 (.env)</div>
+            </div>
+            <div class="modal-body" style="gap: 16px;">
+                <div class="input-group">
+                    <label for="settingsProtocol">协议类型</label>
+                    <select id="settingsProtocol" class="input-control" style="background:#1b1e32;" onchange="onProtocolChange()">
+                        <option value="OpenAI">OpenAI 协议</option>
+                        <option value="OpenAI-Response">OpenAI-Response 协议 (兼容/中转)</option>
+                        <option value="Anthropic">Anthropic 协议</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="settingsApiBase">API 地址 (API Base)</label>
+                    <input type="text" id="settingsApiBase" class="input-control" placeholder="https://api.openai.com/v1">
+                </div>
+                <div class="input-group">
+                    <label for="settingsApiKey">API 密钥 (API Key)</label>
+                    <input type="password" id="settingsApiKey" class="input-control" placeholder="sk-proj-...">
+                </div>
+                <div class="input-group">
+                    <label for="settingsModel">模型名称 (Model)</label>
+                    <input type="text" id="settingsModel" class="input-control" placeholder="openai/gpt-4o">
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted);">提示：切换协议类型即可分别配置各自的 API 地址、密钥及模型。配置将直接以明文保存至本地 `.env` 配置文件中。</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="toggleSettingsModal(false)">取消</button>
+                <button class="btn" onclick="saveSettings()">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 定时任务管理弹窗 -->
+    <div class="overlay" id="schedulesOverlay">
+        <div class="modal" style="width: 750px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">⏰</div>
+                <div class="modal-title">定时自动化任务管理</div>
+            </div>
+            <div class="modal-body" style="gap: 16px;">
+                <!-- 添加定时任务表单 -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                    <h4 style="font-size: 13px; font-weight:600; color:var(--text-main);">添加新定时任务</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="input-group">
+                            <label for="schedTaskName">任务名称</label>
+                            <input type="text" id="schedTaskName" class="input-control" placeholder="例如: 清理日志文件">
+                        </div>
+                        <div class="input-group">
+                            <label for="schedType">频次类型</label>
+                            <select id="schedType" class="input-control" style="background:#1b1e32;">
+                                <option value="interval">间隔循环 (秒)</option>
+                                <option value="daily">每日固定时刻 (HH:MM)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="input-group">
+                            <label for="schedValue">频次值 (例如 '60' 或 '12:30')</label>
+                            <input type="text" id="schedValue" class="input-control" placeholder="60">
+                        </div>
+                        <div class="input-group">
+                            <label for="schedCommand">指令任务描述</label>
+                            <input type="text" id="schedCommand" class="input-control" placeholder="每隔60秒在当前路径运行清理指令...">
+                        </div>
+                    </div>
+                    <button class="btn" style="align-self: flex-end; padding: 8px 16px; font-size:13px;" onclick="addSchedule()">添加任务</button>
+                </div>
+
+                <!-- 任务列表 -->
+                <h4 style="font-size: 13px; font-weight:600; margin-top: 10px;">定时任务列表</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
+                                <th style="padding: 10px 8px;">任务名称</th>
+                                <th style="padding: 10px 8px;">运行频次</th>
+                                <th style="padding: 10px 8px;">上一次运行</th>
+                                <th style="padding: 10px 8px;">下一次运行</th>
+                                <th style="padding: 10px 8px;">状态</th>
+                                <th style="padding: 10px 8px; text-align: right;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedulesTableBody">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="toggleSchedulesModal(false)">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 定时任务运行监控弹窗 -->
+    <div class="overlay" id="scheduleStatusOverlay" style="z-index: 101;">
+        <div class="modal" style="width: 650px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--active-glow);">📊</div>
+                <div class="modal-title">定时任务监控看板</div>
+            </div>
+            <div class="modal-body" style="gap: 16px; overflow-y: auto; flex-grow: 1; display:flex; flex-direction:column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); flex-shrink:0;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted);">正在监控的定时任务</div>
+                        <div style="font-size: 15px; font-weight: 700; color: var(--text-main);" id="inspectTaskName">N/A</div>
+                    </div>
+                    <div>
+                        <span id="inspectStatusBadge" class="badge" style="background: rgba(59, 130, 246, 0.15); color: var(--active-glow); font-size:12px; padding: 4px 8px;">Idle</span>
+                    </div>
+                </div>
+
+                <!-- 谁在干什么活儿 -->
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; flex-shrink:0; margin-top:10px;">
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">当前执行 Agent</div>
+                        <div style="font-size: 16px; font-weight: 700; color: var(--warning);" id="inspectActiveAgent">None</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">当前工作活动说明</div>
+                        <div style="font-size: 13px; font-weight: 500; color: var(--text-main); word-break: break-all;" id="inspectCurrentAction">无活跃工作。</div>
+                    </div>
+                </div>
+
+                <!-- 运行日志终端 -->
+                <div style="display:flex; flex-direction:column; flex-grow: 1; min-height: 200px; margin-top:10px;">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">最近一次执行日志流</div>
+                    <div class="terminal-console" id="inspectConsole" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; flex-grow:1; overflow-y: auto; font-size:12px; max-height:220px;">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="toggleScheduleStatusModal(false)">返回列表</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let ws;
         let activeApprovalId = null;
         let currentActionArgs = null;
+        let lastSubmittedCommand = "";
 
         // 连接 WebSocket
         function connectWS() {
@@ -636,13 +791,47 @@
                     res.data.forEach(item => {
                         const li = document.createElement("li");
                         li.className = "whitelist-item";
+                        li.style.display = "flex";
+                        li.style.flexDirection = "column";
+                        li.style.gap = "6px";
+                        li.style.alignItems = "stretch";
+                        li.style.padding = "10px";
+                        
+                        const escapedCmd = (item.user_command || "").replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        
                         li.innerHTML = `
-                            <span>${item.task_name}</span>
-                            <span class="badge">免确放行</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong style="font-size:13px; color:var(--text-main); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:140px;" title="${item.task_name}">${item.task_name}</strong>
+                                <span class="badge" style="background:rgba(16,185,129,0.1); color:var(--success); font-size:9px;">已调试</span>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${item.user_command || '暂无原始指令'}">
+                                指令: ${item.user_command || '暂无原始指令'}
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; margin-top:2px;">
+                                <button class="btn btn-secondary" style="padding:2px 6px; font-size:10px; display:flex; align-items:center; gap:2px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);" onclick="convertWhitelistToSchedule('${item.task_name}', '${escapedCmd}')">
+                                    ⏱️ 转为定时
+                                </button>
+                            </div>
                         `;
                         listEl.appendChild(li);
                     });
                 });
+        }
+
+        // 一键将测试好的白名单任务转为定时任务配置
+        function convertWhitelistToSchedule(taskName, userCommand) {
+            // 1. 打开定时任务管理弹窗
+            toggleSchedulesModal(true);
+            
+            // 2. 自动填充定时任务表单
+            document.getElementById("schedTaskName").value = taskName;
+            document.getElementById("schedCommand").value = userCommand;
+            
+            // 3. 将焦点聚集到频次值输入框，方便用户填写频次
+            document.getElementById("schedValue").focus();
+            
+            // 4. 可以给出个小提示
+            appendLog("System", `已将调试白名单任务 "${taskName}" 导入配置模版，请指定它的频次与时间。`);
         }
 
         // WebSocket 消息分发
@@ -668,12 +857,13 @@
             }
             else if (type === "task_completed") {
                 appendLog("System", "🎉 任务已成功完成验收！");
-                // 一键将任务设为已调试
+                // 一键将任务设为已调试并带上指令
                 ws.send(JSON.stringify({
                     type: "mark_task_debugged",
                     data: {
                         task_name: data.task_name,
-                        is_debugged: true
+                        is_debugged: true,
+                        user_command: lastSubmittedCommand
                     }
                 }));
             }
@@ -791,6 +981,8 @@
                 return;
             }
 
+            lastSubmittedCommand = userCommand;
+
             ws.send(JSON.stringify({
                 type: "submit_task",
                 data: {
@@ -799,6 +991,316 @@
                 }
             }));
         };
+
+        let currentProtocol = "OpenAI";
+        let protocolConfigs = {
+            "OpenAI": { key: "", base: "", model: "" },
+            "OpenAI-Response": { key: "", base: "", model: "" },
+            "Anthropic": { key: "", base: "", model: "" }
+        };
+
+        function onProtocolChange() {
+            // 备份当前编辑的值
+            protocolConfigs[currentProtocol].base = document.getElementById("settingsApiBase").value.trim();
+            protocolConfigs[currentProtocol].key = document.getElementById("settingsApiKey").value.trim();
+            protocolConfigs[currentProtocol].model = document.getElementById("settingsModel").value.trim();
+
+            // 切换协议
+            currentProtocol = document.getElementById("settingsProtocol").value;
+
+            // 加载新协议的值
+            document.getElementById("settingsApiBase").value = protocolConfigs[currentProtocol].base;
+            document.getElementById("settingsApiKey").value = protocolConfigs[currentProtocol].key;
+            document.getElementById("settingsModel").value = protocolConfigs[currentProtocol].model;
+
+            // 根据协议切换 Placeholder 提示
+            const baseInput = document.getElementById("settingsApiBase");
+            const keyInput = document.getElementById("settingsApiKey");
+            const modelInput = document.getElementById("settingsModel");
+            if (currentProtocol === "OpenAI") {
+                baseInput.placeholder = "https://api.openai.com/v1";
+                keyInput.placeholder = "sk-proj-...";
+                modelInput.placeholder = "openai/gpt-4o";
+            } else if (currentProtocol === "OpenAI-Response") {
+                baseInput.placeholder = "https://api.deepseek.com";
+                keyInput.placeholder = "sk-...";
+                modelInput.placeholder = "deepseek/deepseek-chat";
+            } else if (currentProtocol === "Anthropic") {
+                baseInput.placeholder = "https://api.anthropic.com";
+                keyInput.placeholder = "sk-ant-...";
+                modelInput.placeholder = "anthropic/claude-3-5-sonnet";
+            }
+        }
+
+        // 切换设置弹窗
+        function toggleSettingsModal(show) {
+            const overlay = document.getElementById("settingsOverlay");
+            if (show) {
+                fetch("http://localhost:8000/api/settings")
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.status === "success") {
+                            protocolConfigs["OpenAI"].key = res.data.OPENAI_API_KEY || "";
+                            protocolConfigs["OpenAI"].base = res.data.OPENAI_API_BASE || "";
+                            protocolConfigs["OpenAI"].model = res.data.OPENAI_MODEL || "";
+                            protocolConfigs["OpenAI-Response"].key = res.data.OPENAI_RESPONSE_API_KEY || "";
+                            protocolConfigs["OpenAI-Response"].base = res.data.OPENAI_RESPONSE_API_BASE || "";
+                            protocolConfigs["OpenAI-Response"].model = res.data.OPENAI_RESPONSE_MODEL || "";
+                            protocolConfigs["Anthropic"].key = res.data.ANTHROPIC_API_KEY || "";
+                            protocolConfigs["Anthropic"].base = res.data.ANTHROPIC_API_BASE || "";
+                            protocolConfigs["Anthropic"].model = res.data.ANTHROPIC_MODEL || "";
+                        }
+                        
+                        // 重置为默认展示 OpenAI
+                        document.getElementById("settingsProtocol").value = "OpenAI";
+                        currentProtocol = "OpenAI";
+                        document.getElementById("settingsApiBase").value = protocolConfigs["OpenAI"].base;
+                        document.getElementById("settingsApiKey").value = protocolConfigs["OpenAI"].key;
+                        document.getElementById("settingsModel").value = protocolConfigs["OpenAI"].model;
+                        
+                        document.getElementById("settingsApiBase").placeholder = "https://api.openai.com/v1";
+                        document.getElementById("settingsApiKey").placeholder = "sk-proj-...";
+                        document.getElementById("settingsModel").placeholder = "openai/gpt-4o";
+                        
+                        overlay.className = "overlay active";
+                    })
+                    .catch(err => {
+                        alert("获取配置失败: " + err);
+                    });
+            } else {
+                overlay.className = "overlay";
+            }
+        }
+
+        // 保存设置到后端并进行热更新
+        function saveSettings() {
+            // 先同步当前正在编辑的协议值
+            protocolConfigs[currentProtocol].base = document.getElementById("settingsApiBase").value.trim();
+            protocolConfigs[currentProtocol].key = document.getElementById("settingsApiKey").value.trim();
+            protocolConfigs[currentProtocol].model = document.getElementById("settingsModel").value.trim();
+
+            const data = {
+                OPENAI_API_KEY: protocolConfigs["OpenAI"].key,
+                OPENAI_API_BASE: protocolConfigs["OpenAI"].base,
+                OPENAI_MODEL: protocolConfigs["OpenAI"].model,
+                OPENAI_RESPONSE_API_KEY: protocolConfigs["OpenAI-Response"].key,
+                OPENAI_RESPONSE_API_BASE: protocolConfigs["OpenAI-Response"].base,
+                OPENAI_RESPONSE_MODEL: protocolConfigs["OpenAI-Response"].model,
+                ANTHROPIC_API_KEY: protocolConfigs["Anthropic"].key,
+                ANTHROPIC_API_BASE: protocolConfigs["Anthropic"].base,
+                ANTHROPIC_MODEL: protocolConfigs["Anthropic"].model
+            };
+
+            fetch("http://localhost:8000/api/settings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === "success") {
+                    alert("配置已成功保存并热重载生效！");
+                    toggleSettingsModal(false);
+                } else {
+                    alert("保存失败：" + res.message);
+                }
+            })
+            .catch(err => {
+                alert("保存失败: " + err);
+            });
+        }
+
+        let pollIntervalId = null;
+        let inspectTaskNameStr = null;
+
+        function toggleSchedulesModal(show) {
+            const overlay = document.getElementById("schedulesOverlay");
+            if (show) {
+                fetchSchedules();
+                overlay.className = "overlay active";
+            } else {
+                overlay.className = "overlay";
+            }
+        }
+
+        function fetchSchedules() {
+            fetch("http://localhost:8000/api/schedules")
+                .then(r => r.json())
+                .then(res => {
+                    const tbody = document.getElementById("schedulesTableBody");
+                    tbody.innerHTML = "";
+                    if (res.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color:var(--text-muted);">暂无配置的定时任务</td></tr>';
+                        return;
+                    }
+                    res.data.forEach(item => {
+                        const tr = document.createElement("tr");
+                        tr.style.borderBottom = "1px solid var(--border-color)";
+                        tr.style.opacity = item.status === "paused" ? "0.5" : "1";
+                        
+                        const freqText = item.schedule_type === "interval" ? `每隔 ${item.schedule_value} 秒` : `每日固定时刻 ${item.schedule_value}`;
+                        const statusBadge = item.status === "active" ? 
+                            `<span class="badge" style="background:rgba(16,185,129,0.15); color:var(--success);">激活中</span>` : 
+                            `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--danger);">已暂停</span>`;
+                            
+                        const lastRunText = item.last_run ? item.last_run.substring(0, 19).replace('T', ' ') : '从未运行';
+                        const nextRunText = item.next_run ? item.next_run.substring(0, 19).replace('T', ' ') : '尚未计算';
+                        
+                        tr.innerHTML = `
+                            <td style="padding: 12px 8px;"><strong>${item.task_name}</strong></td>
+                            <td style="padding: 12px 8px;">${freqText}</td>
+                            <td style="padding: 12px 8px; font-size:11px; color:var(--text-muted);">${lastRunText}</td>
+                            <td style="padding: 12px 8px; font-size:11px; color:var(--text-muted);">${nextRunText}</td>
+                            <td style="padding: 12px 8px;">${statusBadge}</td>
+                            <td style="padding: 12px 8px; text-align: right; display:flex; gap:8px; justify-content:flex-end;">
+                                <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="inspectScheduleStatus('${item.id}', '${item.task_name}')">监控</button>
+                                <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; color:var(--warning);" onclick="toggleScheduleActive('${item.id}', '${item.status}')">
+                                    ${item.status === "active" ? "暂停" : "激活"}
+                                </button>
+                                <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteSchedule('${item.id}')">删除</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(err => alert("获取定时任务失败: " + err));
+        }
+
+        function addSchedule() {
+            const task_name = document.getElementById("schedTaskName").value.trim();
+            const schedule_type = document.getElementById("schedType").value;
+            const schedule_value = document.getElementById("schedValue").value.trim();
+            const user_command = document.getElementById("schedCommand").value.trim();
+
+            if (!task_name || !schedule_value || !user_command) {
+                alert("请填入完整任务配置！");
+                return;
+            }
+
+            const data = {
+                task_name,
+                schedule_type,
+                schedule_value,
+                user_command,
+                status: "active"
+            };
+
+            fetch("http://localhost:8000/api/schedules", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === "success") {
+                    alert("定时任务添加成功！");
+                    document.getElementById("schedTaskName").value = "";
+                    document.getElementById("schedValue").value = "";
+                    document.getElementById("schedCommand").value = "";
+                    fetchSchedules();
+                }
+            })
+            .catch(err => alert("添加失败: " + err));
+        }
+
+        function deleteSchedule(id) {
+            if (!confirm("确定删除该定时任务吗？")) return;
+            fetch(`http://localhost:8000/api/schedules/${id}`, {
+                method: "DELETE"
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === "success") {
+                    fetchSchedules();
+                }
+            })
+            .catch(err => alert("删除失败: " + err));
+        }
+
+        function toggleScheduleActive(id, currentStatus) {
+            const newStatus = currentStatus === "active" ? "paused" : "active";
+            fetch(`http://localhost:8000/api/schedules/${id}/toggle`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === "success") {
+                    fetchSchedules();
+                }
+            })
+            .catch(err => alert("切换状态失败: " + err));
+        }
+
+        function inspectScheduleStatus(id, taskName) {
+            inspectTaskNameStr = taskName;
+            document.getElementById("inspectTaskName").innerText = taskName;
+            
+            toggleScheduleStatusModal(true);
+        }
+
+        function toggleScheduleStatusModal(show) {
+            const overlay = document.getElementById("scheduleStatusOverlay");
+            if (show) {
+                overlay.className = "overlay active";
+                pollRunningStatus();
+                if (pollIntervalId) clearInterval(pollIntervalId);
+                pollIntervalId = setInterval(pollRunningStatus, 1000);
+            } else {
+                overlay.className = "overlay";
+                if (pollIntervalId) {
+                    clearInterval(pollIntervalId);
+                    pollIntervalId = null;
+                }
+            }
+        }
+
+        function pollRunningStatus() {
+            fetch("http://localhost:8000/api/schedules/running")
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === "success") {
+                        const status = res.data.status;
+                        const taskName = res.data.task_name;
+                        
+                        if (taskName === inspectTaskNameStr && status === "running") {
+                            document.getElementById("inspectStatusBadge").innerText = "运行中 (Running)";
+                            document.getElementById("inspectStatusBadge").style.background = "rgba(59, 130, 246, 0.15)";
+                            document.getElementById("inspectStatusBadge").style.color = "var(--active-glow)";
+                            document.getElementById("inspectActiveAgent").innerText = res.data.active_agent || "None";
+                            document.getElementById("inspectCurrentAction").innerText = res.data.current_action || "无活动描述";
+                        } else {
+                            document.getElementById("inspectStatusBadge").innerText = "空闲 (Idle)";
+                            document.getElementById("inspectStatusBadge").style.background = "rgba(16, 185, 129, 0.15)";
+                            document.getElementById("inspectStatusBadge").style.color = "var(--success)";
+                            document.getElementById("inspectActiveAgent").innerText = "None";
+                            document.getElementById("inspectCurrentAction").innerText = "无活跃定时任务在执行。";
+                        }
+                        
+                        const consoleEl = document.getElementById("inspectConsole");
+                        if (taskName === inspectTaskNameStr && res.data.logs) {
+                            consoleEl.innerHTML = "";
+                            res.data.logs.forEach(log => {
+                                const div = document.createElement("div");
+                                div.className = "log-row";
+                                div.innerText = log;
+                                consoleEl.appendChild(div);
+                            });
+                            consoleEl.scrollTop = consoleEl.scrollHeight;
+                        } else if (consoleEl.innerHTML === "" || (taskName !== inspectTaskNameStr)) {
+                            consoleEl.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:10px 0;">当前没有活跃的运行日志记录。</div>';
+                        }
+                    }
+                })
+                .catch(err => console.error("Poll running status failed: ", err));
+        }
 
         // 启动连接
         connectWS();

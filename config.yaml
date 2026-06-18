@@ -24,18 +24,18 @@ safety:
 models:
   # 主调度 Agent：负责指令解析、任务分解、结果验证
   orchestrator:
-    model: "openai/gpt-4o"
-    api_key: "ENV_OPENAI_API_KEY"       # 如果配置为 ENV_xxx，系统会自动读取环境变量中的相应字段
-    api_base: null                      # 自定义中转 API 地址，不需要可设为 null
+    model: "ENV_OPENAI_MODEL"
+    api_key: "ENV_OPENAI_API_KEY"
+    api_base: "ENV_OPENAI_API_BASE"
 
   # 命令行 OS Agent：负责执行 Shell 命令、系统配置等
   os_agent:
-    model: "deepseek/deepseek-chat"
-    api_key: "ENV_DEEPSEEK_API_KEY"
-    api_base: "https://api.deepseek.com"
+    model: "ENV_OPENAI_RESPONSE_MODEL"
+    api_key: "ENV_OPENAI_RESPONSE_API_KEY"
+    api_base: "ENV_OPENAI_RESPONSE_API_BASE"
 
   # 原生 GUI Agent：负责 Windows 桌面程序控制
   gui_agent:
-    model: "anthropic/claude-3-5-sonnet"
+    model: "ENV_ANTHROPIC_MODEL"
     api_key: "ENV_ANTHROPIC_API_KEY"
-    api_base: null
+    api_base: "ENV_ANTHROPIC_API_BASE"

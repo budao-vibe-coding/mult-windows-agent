@@ -14,14 +14,23 @@ logger = logging.getLogger(__name__)
 current_task_name: Optional[str] = None
 shared_memory: Dict[str, Any] = {}
 
+# 定时/手动任务运行时状态实时追踪
+current_run_status: Dict[str, Any] = {
+    "task_name": None,
+    "status": "idle",          # 'idle', 'running', 'completed', 'failed'
+    "active_agent": "None",
+    "current_action": "None",
+    "logs": []
+}
+
 class Orchestrator:
     def __init__(self, broadcast_cb: Optional[Callable[[Dict[str, Any]], None]] = None):
         self.broadcast_cb = broadcast_cb
         sys_config = get_config()
         self.cfg = sys_config.models.get("orchestrator")
-        self.model = self.cfg.model
+        self.model = self.cfg.resolve_model()
         self.api_key = self.cfg.resolve_api_key()
-        self.api_base = self.cfg.api_base
+        self.api_base = self.cfg.resolve_api_base()
 
         # 初始化支持的专用子 Agent
         self.agents = {
@@ -31,6 +40,11 @@ class Orchestrator:
 
     def log(self, message: str, agent_name: str = "System"):
         logger.info(f"[{agent_name}] {message}")
+        
+        # 记录到当前运行日志中
+        if current_run_status["status"] == "running":
+            current_run_status["logs"].append(f"[{agent_name}] {message}")
+            
         if self.broadcast_cb:
             self.broadcast_cb({
                 "type": "log",
@@ -126,6 +140,13 @@ class Orchestrator:
         current_task_name = task_name
         shared_memory.clear()
         
+        # 初始化运行时状态
+        current_run_status["task_name"] = task_name
+        current_run_status["status"] = "running"
+        current_run_status["active_agent"] = "Orchestrator"
+        current_run_status["current_action"] = "Initializing plan and preparing steps..."
+        current_run_status["logs"] = []
+
         self.log(f"开始执行任务，总计 {len(plan)} 个步骤。", "Orchestrator")
         
         # 将计划结构同步给客户端
@@ -145,6 +166,10 @@ class Orchestrator:
             desc = step["description"]
             inst = step["instruction"]
             outcome = step["expected_outcome"]
+
+            # 动态更新当前执行信息
+            current_run_status["active_agent"] = agent_type
+            current_run_status["current_action"] = f"Executing Step {step_id}: {desc}"
 
             self.log(f">>> 步骤 {step_id}: {desc}", "Orchestrator")
             if self.broadcast_cb:
@@ -221,6 +246,12 @@ class Orchestrator:
 
             if not success:
                 self.log(f"步骤 {step_id} 失败多次，任务整体终止。", "Orchestrator")
+                
+                # 更新状态为失败
+                current_run_status["status"] = "failed"
+                current_run_status["active_agent"] = "None"
+                current_run_status["current_action"] = f"Failed at Step {step_id}: {error_feedback}"
+                
                 if self.broadcast_cb:
                     self.broadcast_cb({
                         "type": "step_failed",
@@ -229,6 +260,12 @@ class Orchestrator:
                 return False
 
         self.log("所有任务步骤均已执行完毕并验收合格！", "Orchestrator")
+        
+        # 更新状态为成功完成
+        current_run_status["status"] = "completed"
+        current_run_status["active_agent"] = "None"
+        current_run_status["current_action"] = "Task finished successfully."
+
         if self.broadcast_cb:
             self.broadcast_cb({
                 "type": "task_completed",
